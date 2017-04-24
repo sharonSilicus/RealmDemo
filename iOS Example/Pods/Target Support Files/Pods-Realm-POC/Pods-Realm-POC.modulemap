@@ -1,0 +1,6 @@
+framework module Pods_Realm_POC {
+  umbrella header "Pods-Realm-POC-umbrella.h"
+
+  export *
+  module * { export * }
+}

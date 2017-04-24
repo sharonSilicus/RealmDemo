@@ -9,7 +9,7 @@
 			<key>isShown</key>
 			<false/>
 		</dict>
-		<key>Pods.xcscheme</key>
+		<key>Pods-Realm-POC.xcscheme</key>
 		<dict>
 			<key>isShown</key>
 			<false/>
@@ -22,17 +22,17 @@
 	</dict>
 	<key>SuppressBuildableAutocreation</key>
 	<dict>
-		<key>08FD3E3D55CF0423585D6E78B7CACF83</key>
-		<dict>
-			<key>primary</key>
-			<true/>
-		</dict>
-		<key>2036A07A4F78967685209DCCCF763202</key>
-		<dict>
-			<key>primary</key>
-			<true/>
-		</dict>
 		<key>735882DA95E7FCCEC084FC1C5384FF8A</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>74279B5BCB5378EC96CF2D975B64AB0D</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>77476F8F862E85D7E46F6D3A5EDD7341</key>
 		<dict>
 			<key>primary</key>
 			<true/>

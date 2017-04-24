@@ -1,4 +1,7 @@
 platform :ios, '8.0'
 use_frameworks!
-pod 'Realm'
-pod 'JVFloatLabeledTextField', '~> 1.1'
+
+target “Realm-POC” do
+    pod 'Realm'
+    pod 'JVFloatLabeledTextField', '~> 1.1'
+end
