@@ -17,86 +17,55 @@
 ////////////////////////////////////////////////////////////////////////////
 
 #import "RLMRealmConfiguration_Private.h"
+
+#import "RLMObjectSchema_Private.hpp"
 #import "RLMRealm_Private.h"
+#import "RLMSchema_Private.hpp"
 #import "RLMUtil.hpp"
-#import "RLMSchema_Private.h"
 
-#include <atomic>
+#import "schema.hpp"
+#import "shared_realm.hpp"
+#import "sync/sync_config.hpp"
 
-static NSString * const c_RLMRealmConfigurationProperties[] = {
-    @"path",
+static NSString *const c_RLMRealmConfigurationProperties[] = {
+    @"fileURL",
     @"inMemoryIdentifier",
     @"encryptionKey",
     @"readOnly",
     @"schemaVersion",
     @"migrationBlock",
+    @"deleteRealmIfMigrationNeeded",
+    @"shouldCompactOnLaunch",
     @"dynamic",
     @"customSchema",
 };
 
-typedef NS_ENUM(NSUInteger, RLMRealmConfigurationUsage) {
-    RLMRealmConfigurationUsageNone,
-    RLMRealmConfigurationUsageConfiguration,
-    RLMRealmConfigurationUsagePerPath,
-};
-
-static std::atomic<RLMRealmConfigurationUsage> s_configurationUsage;
-
-@implementation RLMRealmConfiguration
-
+static NSString *const c_defaultRealmFileName = @"default.realm";
 RLMRealmConfiguration *s_defaultConfiguration;
-static NSString * const c_defaultRealmFileName = @"default.realm";
 
-+ (NSString *)defaultRealmPath
-{
-    static NSString *defaultRealmPath;
-    static dispatch_once_t onceToken;
-    dispatch_once(&onceToken, ^{
-        defaultRealmPath = [[self class] writeablePathForFile:c_defaultRealmFileName];
-    });
-    return defaultRealmPath;
+NSString *RLMRealmPathForFileAndBundleIdentifier(NSString *fileName, NSString *bundleIdentifier) {
+    return [RLMDefaultDirectoryForBundleIdentifier(bundleIdentifier)
+            stringByAppendingPathComponent:fileName];
 }
 
-+ (NSString *)writeablePathForFile:(NSString*)fileName
-{
-#if TARGET_OS_IPHONE
-    // On iOS the Documents directory isn't user-visible, so put files there
-    NSString *path = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES)[0];
-#else
-    // On OS X it is, so put files in Application Support. If we aren't running
-    // in a sandbox, put it in a subdirectory based on the bundle identifier
-    // to avoid accidentally sharing files between applications
-    NSString *path = NSSearchPathForDirectoriesInDomains(NSApplicationSupportDirectory, NSUserDomainMask, YES)[0];
-    if (![[NSProcessInfo processInfo] environment][@"APP_SANDBOX_CONTAINER_ID"]) {
-        NSString *identifier = [[NSBundle mainBundle] bundleIdentifier];
-        if ([identifier length] == 0) {
-            identifier = [[[NSBundle mainBundle] executablePath] lastPathComponent];
-        }
-        path = [path stringByAppendingPathComponent:identifier];
+NSString *RLMRealmPathForFile(NSString *fileName) {
+    static NSString *directory = RLMDefaultDirectoryForBundleIdentifier(nil);
+    return [directory stringByAppendingPathComponent:fileName];
+}
 
-        // create directory
-        [[NSFileManager defaultManager] createDirectoryAtPath:path
-                                  withIntermediateDirectories:YES
-                                                   attributes:nil
-                                                        error:nil];
-    }
-#endif
-    return [path stringByAppendingPathComponent:fileName];
+@implementation RLMRealmConfiguration {
+    realm::Realm::Config _config;
+}
+
+- (realm::Realm::Config&)config {
+    return _config;
 }
 
 + (instancetype)defaultConfiguration {
-    @synchronized(c_defaultRealmFileName) {
-        if (!s_defaultConfiguration) {
-            s_defaultConfiguration = [[RLMRealmConfiguration alloc] init];
-        }
-    }
-    return [s_defaultConfiguration copy];
+    return [[self rawDefaultConfiguration] copy];
 }
 
 + (void)setDefaultConfiguration:(RLMRealmConfiguration *)configuration {
-    if (s_configurationUsage.exchange(RLMRealmConfigurationUsageConfiguration) == RLMRealmConfigurationUsagePerPath) {
-        @throw RLMException(@"Cannot set a default configuration after using per-path configuration methods.");
-    }
     if (!configuration) {
         @throw RLMException(@"Cannot set the default configuration to nil.");
     }
@@ -105,25 +74,35 @@ static NSString * const c_defaultRealmFileName = @"default.realm";
     }
 }
 
-+ (void)setDefaultPath:(NSString *)path {
-    RLMRealmConfiguration *configuration = [[RLMRealmConfiguration alloc] init];
-    configuration.path = path;
++ (RLMRealmConfiguration *)rawDefaultConfiguration {
     @synchronized(c_defaultRealmFileName) {
-        s_defaultConfiguration = configuration;
+        if (!s_defaultConfiguration) {
+            s_defaultConfiguration = [[RLMRealmConfiguration alloc] init];
+        }
     }
+    return s_defaultConfiguration;
 }
 
 + (void)resetRealmConfigurationState {
     @synchronized(c_defaultRealmFileName) {
         s_defaultConfiguration = nil;
     }
-    s_configurationUsage = RLMRealmConfigurationUsageNone;
 }
 
 - (instancetype)init {
     self = [super init];
     if (self) {
-        self.path = [[self class] defaultRealmPath];
+        static NSURL *defaultRealmURL = [NSURL fileURLWithPath:RLMRealmPathForFile(c_defaultRealmFileName)];
+        self.fileURL = defaultRealmURL;
+        self.schemaVersion = 0;
+        self.cache = YES;
+
+        // We have our own caching of RLMRealm instances, so the ObjectStore
+        // cache is at best pointless, and may result in broken behavior when
+        // a realm::Realm instance outlives the RLMRealm (due to collection
+        // notifiers being in the middle of running when the RLMRealm is
+        // dealloced) and then reused for a new RLMRealm
+        _config.cache = false;
     }
 
     return self;
@@ -131,11 +110,12 @@ static NSString * const c_defaultRealmFileName = @"default.realm";
 
 - (instancetype)copyWithZone:(NSZone *)zone {
     RLMRealmConfiguration *configuration = [[[self class] allocWithZone:zone] init];
-    for (NSString *key : c_RLMRealmConfigurationProperties) {
-        if (id value = [self valueForKey:key]) {
-            [configuration setValue:value forKey:key];
-        }
-    }
+    configuration->_config = _config;
+    configuration->_cache = _cache;
+    configuration->_dynamic = _dynamic;
+    configuration->_migrationBlock = _migrationBlock;
+    configuration->_shouldCompactOnLaunch = _shouldCompactOnLaunch;
+    configuration->_customSchema = _customSchema;
     return configuration;
 }
 
@@ -150,46 +130,170 @@ static NSString * const c_defaultRealmFileName = @"default.realm";
     return [string stringByAppendingString:@"}"];
 }
 
+static void RLMNSStringToStdString(std::string &out, NSString *in) {
+    out.resize([in maximumLengthOfBytesUsingEncoding:NSUTF8StringEncoding]);
+    if (out.empty()) {
+        return;
+    }
+
+    NSUInteger size = out.size();
+    [in getBytes:&out[0]
+       maxLength:size
+      usedLength:&size
+        encoding:NSUTF8StringEncoding
+         options:0 range:{0, in.length} remainingRange:nullptr];
+    out.resize(size);
+}
+
+- (NSURL *)fileURL {
+    if (_config.in_memory || _config.sync_config) {
+        return nil;
+    }
+    return [NSURL fileURLWithPath:@(_config.path.c_str())];
+}
+
+- (void)setFileURL:(NSURL *)fileURL {
+    NSString *path = fileURL.path;
+    if (path.length == 0) {
+        @throw RLMException(@"Realm path must not be empty");
+    }
+    _config.sync_config = nullptr;
+
+    RLMNSStringToStdString(_config.path, path);
+    _config.in_memory = false;
+}
+
+- (NSString *)inMemoryIdentifier {
+    if (!_config.in_memory) {
+        return nil;
+    }
+    return [@(_config.path.c_str()) lastPathComponent];
+}
+
 - (void)setInMemoryIdentifier:(NSString *)inMemoryIdentifier {
     if (inMemoryIdentifier.length == 0) {
         @throw RLMException(@"In-memory identifier must not be empty");
     }
+    _config.sync_config = nullptr;
 
-    _inMemoryIdentifier = [inMemoryIdentifier copy];
-    _path = nil;
+    RLMNSStringToStdString(_config.path, [NSTemporaryDirectory() stringByAppendingPathComponent:inMemoryIdentifier]);
+    _config.in_memory = true;
 }
 
-- (void)setPath:(NSString *)path {
-    if (path.length == 0) {
-        @throw RLMException(@"Realm path must not be empty");
-    }
-
-    _path = [path copy];
-    _inMemoryIdentifier = nil;
+- (NSData *)encryptionKey {
+    return _config.encryption_key.empty() ? nil : [NSData dataWithBytes:_config.encryption_key.data() length:_config.encryption_key.size()];
 }
 
 - (void)setEncryptionKey:(NSData * __nullable)encryptionKey {
-    _encryptionKey = [RLMRealmValidatedEncryptionKey(encryptionKey) copy];
-}
-
-- (void)setSchemaVersion:(uint64_t)schemaVersion {
-    if ((_schemaVersion = schemaVersion) == RLMNotVersioned) {
-        @throw RLMException(@"Cannot set schema version to %llu (RLMNotVersioned)", RLMNotVersioned);
+    if (NSData *key = RLMRealmValidatedEncryptionKey(encryptionKey)) {
+        auto bytes = static_cast<const char *>(key.bytes);
+        _config.encryption_key.assign(bytes, bytes + key.length);
+        if (_config.sync_config) {
+            auto& sync_encryption_key = self.config.sync_config->realm_encryption_key;
+            sync_encryption_key = std::array<char, 64>();
+            std::copy_n(_config.encryption_key.begin(), 64, sync_encryption_key->begin());
+        }
+    }
+    else {
+        _config.encryption_key.clear();
+        if (_config.sync_config)
+            _config.sync_config->realm_encryption_key = realm::util::none;
     }
 }
 
-- (void)setObjectClasses:(NSArray *)objectClasses {
-    _customSchema = [RLMSchema schemaWithObjectClasses:objectClasses];
+- (BOOL)readOnly {
+    return _config.read_only();
+}
+
+- (void)setReadOnly:(BOOL)readOnly {
+    if (readOnly) {
+        if (self.deleteRealmIfMigrationNeeded) {
+            @throw RLMException(@"Cannot set `readOnly` when `deleteRealmIfMigrationNeeded` is set.");
+        } else if (self.shouldCompactOnLaunch) {
+            @throw RLMException(@"Cannot set `readOnly` when `shouldCompactOnLaunch` is set.");
+        }
+        _config.schema_mode = realm::SchemaMode::ReadOnly;
+    }
+    else if (self.readOnly) {
+        _config.schema_mode = realm::SchemaMode::Automatic;
+    }
+}
+
+- (uint64_t)schemaVersion {
+    return _config.schema_version;
+}
+
+- (void)setSchemaVersion:(uint64_t)schemaVersion {
+    if (schemaVersion == RLMNotVersioned) {
+        @throw RLMException(@"Cannot set schema version to %llu (RLMNotVersioned)", RLMNotVersioned);
+    }
+    _config.schema_version = schemaVersion;
+}
+
+- (BOOL)deleteRealmIfMigrationNeeded {
+    return _config.schema_mode == realm::SchemaMode::ResetFile;
+}
+
+- (void)setDeleteRealmIfMigrationNeeded:(BOOL)deleteRealmIfMigrationNeeded {
+    if (deleteRealmIfMigrationNeeded) {
+        if (self.readOnly) {
+            @throw RLMException(@"Cannot set `deleteRealmIfMigrationNeeded` when `readOnly` is set.");
+        }
+        _config.schema_mode = realm::SchemaMode::ResetFile;
+    }
+    else if (self.deleteRealmIfMigrationNeeded) {
+        _config.schema_mode = realm::SchemaMode::Automatic;
+    }
 }
 
 - (NSArray *)objectClasses {
     return [_customSchema.objectSchema valueForKeyPath:@"objectClass"];
 }
 
-@end
-
-void RLMRealmConfigurationUsePerPath(SEL callingMethod) {
-    if (s_configurationUsage.exchange(RLMRealmConfigurationUsagePerPath) == RLMRealmConfigurationUsageConfiguration) {
-        @throw RLMException(@"Cannot call %@ after setting a default configuration.", NSStringFromSelector(callingMethod));
-    }
+- (void)setObjectClasses:(NSArray *)objectClasses {
+    self.customSchema = [RLMSchema schemaWithObjectClasses:objectClasses];
 }
+
+- (void)setDynamic:(bool)dynamic {
+    _dynamic = dynamic;
+    self.cache = !dynamic;
+}
+
+- (bool)disableFormatUpgrade {
+    return _config.disable_format_upgrade;
+}
+
+- (void)setDisableFormatUpgrade:(bool)disableFormatUpgrade {
+    _config.disable_format_upgrade = disableFormatUpgrade;
+}
+
+- (realm::SchemaMode)schemaMode {
+    return _config.schema_mode;
+}
+
+- (void)setSchemaMode:(realm::SchemaMode)mode {
+    _config.schema_mode = mode;
+}
+
+- (NSString *)pathOnDisk {
+    return @(_config.path.c_str());
+}
+
+- (void)setShouldCompactOnLaunch:(RLMShouldCompactOnLaunchBlock)shouldCompactOnLaunch {
+    if (shouldCompactOnLaunch) {
+        if (self.readOnly) {
+            @throw RLMException(@"Cannot set `shouldCompactOnLaunch` when `readOnly` is set.");
+        } else if (_config.sync_config) {
+            @throw RLMException(@"Cannot set `shouldCompactOnLaunch` when `syncConfiguration` is set.");
+        }
+        _config.should_compact_on_launch_function = [=](size_t totalBytes, size_t usedBytes) {
+            return shouldCompactOnLaunch(totalBytes, usedBytes);
+        };
+    }
+    else {
+        _config.should_compact_on_launch_function = nullptr;
+    }
+    _shouldCompactOnLaunch = shouldCompactOnLaunch;
+}
+
+@end

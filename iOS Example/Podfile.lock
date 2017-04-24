@@ -1,8 +1,8 @@
 PODS:
   - JVFloatLabeledTextField (1.1.0)
-  - Realm (0.96.2):
-    - Realm/Headers (= 0.96.2)
-  - Realm/Headers (0.96.2)
+  - Realm (2.6.2):
+    - Realm/Headers (= 2.6.2)
+  - Realm/Headers (2.6.2)
 
 DEPENDENCIES:
   - JVFloatLabeledTextField (~> 1.1)
@@ -10,8 +10,8 @@ DEPENDENCIES:
 
 SPEC CHECKSUMS:
   JVFloatLabeledTextField: ea4a3d8387ddd43724c472bb2b8ab39b79af05d4
-  Realm: 3ce8448151c571e90b85002d984d7f93f54fc8a3
+  Realm: 29222766425b9f831228f81b63f0e38a97a4d700
 
-PODFILE CHECKSUM: 63851cbeb920e7897851f06f8d74d598292061a0
+PODFILE CHECKSUM: 87c9990e416a35a95692395ffb2eb0691a4065a1
 
 COCOAPODS: 1.0.0
