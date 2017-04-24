@@ -194,6 +194,7 @@
 				TargetAttributes = {
 					2CFE46311BF1FC5200D5A624 = {
 						CreatedOnToolsVersion = 7.1;
+						DevelopmentTeam = XX476596JW;
 					};
 				};
 			};
@@ -401,10 +402,11 @@
 			baseConfigurationReference = E80351B9B48B1AEA0BED65B3 /* Pods.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				DEVELOPMENT_TEAM = XX476596JW;
 				INFOPLIST_FILE = "Realm-POC/Info.plist";
 				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
-				PRODUCT_BUNDLE_IDENTIFIER = "com.silicus.Realm-POC";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.silicus.Realm-POC1";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Debug;
@@ -414,10 +416,11 @@
 			baseConfigurationReference = D84B64AA7A13B4AFF15ABD04 /* Pods.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				DEVELOPMENT_TEAM = XX476596JW;
 				INFOPLIST_FILE = "Realm-POC/Info.plist";
 				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
-				PRODUCT_BUNDLE_IDENTIFIER = "com.silicus.Realm-POC";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.silicus.Realm-POC1";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Release;
