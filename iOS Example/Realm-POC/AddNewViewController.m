@@ -100,6 +100,9 @@
     
     // Result.
     int lastProjectnumber = [numberString intValue];
+    
+    NSLog(@"Test Log");
+    
     return [NSString stringWithFormat:@"SOWSIL%06d",(lastProjectnumber+1)];
 }
 
