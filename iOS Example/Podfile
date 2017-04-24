@@ -4,4 +4,5 @@ use_frameworks!
 target 'Realm-POC' do
     pod 'Realm'
     pod 'JVFloatLabeledTextField', '~> 1.1'
+    pod 'MobileCenter'
 end

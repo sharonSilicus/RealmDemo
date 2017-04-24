@@ -9,6 +9,11 @@
 			<key>isShown</key>
 			<false/>
 		</dict>
+		<key>MobileCenter-MobileCenterDistributeResources.xcscheme</key>
+		<dict>
+			<key>isShown</key>
+			<false/>
+		</dict>
 		<key>Pods-Realm-POC.xcscheme</key>
 		<dict>
 			<key>isShown</key>
@@ -22,17 +27,22 @@
 	</dict>
 	<key>SuppressBuildableAutocreation</key>
 	<dict>
+		<key>0353671CD29C6129BC7F7348754B8EBC</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
 		<key>735882DA95E7FCCEC084FC1C5384FF8A</key>
 		<dict>
 			<key>primary</key>
 			<true/>
 		</dict>
-		<key>74279B5BCB5378EC96CF2D975B64AB0D</key>
+		<key>E9B77C454CADB7558C235E81783F0FD0</key>
 		<dict>
 			<key>primary</key>
 			<true/>
 		</dict>
-		<key>77476F8F862E85D7E46F6D3A5EDD7341</key>
+		<key>F260255B2A68D2F748BC2E9147DE0D62</key>
 		<dict>
 			<key>primary</key>
 			<true/>

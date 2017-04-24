@@ -211,6 +211,8 @@
 
     UIAlertView *successAlert = [[UIAlertView alloc] initWithTitle:@"Success" message:message delegate:self cancelButtonTitle:@"Okay" otherButtonTitles:nil, nil];
     [successAlert show];
+    
+    [NSException raise:@"Oops somethign went wrong" format:@"%@ is invalid entry", projectToAdd.name];
 }
 
 #pragma mark -

@@ -1,17 +1,30 @@
 PODS:
   - JVFloatLabeledTextField (1.1.0)
+  - MobileCenter (0.6.1):
+    - MobileCenter/MobileCenterAnalytics (= 0.6.1)
+    - MobileCenter/MobileCenterCrashes (= 0.6.1)
+    - MobileCenter/MobileCenterDistribute (= 0.6.1)
+  - MobileCenter/MobileCenter (0.6.1)
+  - MobileCenter/MobileCenterAnalytics (0.6.1):
+    - MobileCenter/MobileCenter
+  - MobileCenter/MobileCenterCrashes (0.6.1):
+    - MobileCenter/MobileCenter
+  - MobileCenter/MobileCenterDistribute (0.6.1):
+    - MobileCenter/MobileCenter
   - Realm (2.6.2):
     - Realm/Headers (= 2.6.2)
   - Realm/Headers (2.6.2)
 
 DEPENDENCIES:
   - JVFloatLabeledTextField (~> 1.1)
+  - MobileCenter
   - Realm
 
 SPEC CHECKSUMS:
   JVFloatLabeledTextField: ea4a3d8387ddd43724c472bb2b8ab39b79af05d4
+  MobileCenter: a0c2ac2ab187d485ffab42463638dbb7606c4019
   Realm: 29222766425b9f831228f81b63f0e38a97a4d700
 
-PODFILE CHECKSUM: 87c9990e416a35a95692395ffb2eb0691a4065a1
+PODFILE CHECKSUM: 7f568ea2bd40db1b7eeba06230f83fbeabf70ee2
 
 COCOAPODS: 1.0.0

@@ -14,6 +14,12 @@
 
 #import "ApplicationSharedManager.h"
 
+@import MobileCenter;
+
+@import MobileCenterAnalytics;
+
+@import MobileCenterCrashes;
+
 @interface AppDelegate ()
 
 @end
@@ -68,6 +74,10 @@
     }
     
 
+    [MSMobileCenter start:@"f558440a-79f2-4112-81f4-9917d17792f5" withServices:@[
+                                                                                 [MSAnalytics class],
+                                                                                 [MSCrashes class]
+                                                                                 ]];
     
     return YES;
 }
